@@ -1,44 +1,32 @@
 using System;
 using DiceModders.ModCore;
-using DiceModders.Shared;
-using DiceModders.UiKit;
+using DiceModders.ModCore.Tools;
 using Il2CppInterop.Runtime;
 using UnityEngine;
 
 namespace DiceModders.Tweaks;
 
-// The class ModCore and its namespace share a name; inside DiceModders.* this alias makes "ModCore" the static class.
-using ModCore = DiceModders.ModCore.ModCore;
-
-// Inside namespace DiceModders.* the bare name "UiKit" would be the NAMESPACE DiceModders.UiKit; this alias makes it the static class again.
-using UiKit = DiceModders.UiKit.UiKit;
+using Core = DiceModders.ModCore.ModCore;
 
 /// <summary>
-/// "Anonymous attacks": a rule the HOST sets in the lobby settings. While it is on, nobody sees who attacks whom:
-///  * the attacker flags next to the player names (PlayerSummary.attackerPrefab, the holder of the pooled flag images) are made invisible,
-///  * the attack summaries at the top right of the scoreboard (Scoreboard.OnCombatStart creates one ScoreboardCombatSummary per attacker) are not created.
-///
-/// The rule travels through UiKit's lobby rules (Steam lobby data), so every player who has this mod follows the host; players without the mod
-/// simply keep seeing the flags (the rule only changes what is DRAWN, never the simulation, so it cannot desync anybody).
-///
-/// The holder is hidden with a CanvasGroup (alpha 0) instead of SetActive(false): PlayerSummary.Update compares the holder's activeSelf with the state it
-/// wants every frame and would re-activate it and re-create all flag images 60 times a second.
+/// "Anonymous attacks": a lobby rule the HOST sets. While it is on, nobody sees who attacks whom:
+///  * the attacker flags next to the player names (<c>PlayerSummary.attackerPrefab</c>, the holder of the pooled flag images) are made invisible,
+///  * the attack summaries at the top right of the scoreboard (<c>Scoreboard.OnCombatStart</c> makes one per attacker) are not created.
+/// It only changes what is drawn, never the simulation, so players without the mod simply keep seeing the flags.
+/// The holder is hidden with a CanvasGroup (alpha 0) instead of SetActive(false): <c>PlayerSummary.Update</c> compares the holder's activeSelf with
+/// the state it wants every frame and would re-activate it.
 /// </summary>
 internal static class AnonymousAttacks
 {
     private static LobbyRule<bool> _rule;
     private static Type _summaryType;
 
-    internal static long SummariesSkipped;
-    internal static long FlagHoldersHidden;
+    internal static bool Active => Plugin.On && _rule != null && _rule.Value;
 
-    internal static bool Active => _rule != null && _rule.Value;
-
-    internal static void Load(Patcher patcher)
+    internal static void Install(Patcher patcher)
     {
-        _rule = ModCore.Lobby.Rules.Toggle(
-            "tweaks.anonymousAttacks", "Anonymous attacks", false,
-            "Hides who is attacking: no attacker flags next to the player names and no attack summaries at the top right of the scoreboard.",
+        _rule = Core.Lobby.Rules.Toggle("tweaks.anonymousAttacks", "Anonymous attacks", false,
+            "Hides who is attacking: no attacker flags next to the player names, no attack summaries at the top right of the scoreboard, and every other player's models in one grey colour.",
             affectsSimulation: false);
         _rule.Changed += _ => RefreshAll();
 
@@ -48,50 +36,38 @@ internal static class AnonymousAttacks
     }
 
     // Scoreboard.OnCombatStart(CombatGrid): skipped while the rule is on, so no summary is created.
-    internal static bool CombatStartPrefix()
-    {
-        if (!Active) return true;
-        SummariesSkipped++;
-        return false;
-    }
+    internal static bool CombatStartPrefix() => !Active;
 
     internal static void SummaryPostfix(object __instance)
     {
         try { Apply(__instance); }
-        catch (Exception e) { ModPlugin.L.LogWarning("[anonymous] " + e.GetType().Name + ": " + e.Message); }
+        catch (Exception e) { Plugin.L.LogWarning("anonymous attacks: " + e.Message); }
     }
 
     private static void Apply(object summary)
     {
-        if (!Reflect.TryGetMember(summary, "attackerPrefab", out object holder) || holder is not Component component) return;
+        if (!Reflect.TryGetMember(summary, "attackerPrefab", out object holder) || holder is not Component component || component.gameObject == null) return;
         var go = component.gameObject;
-        if (go == null) return;
-
         var group = go.GetComponent<CanvasGroup>();
         if (group == null)
         {
-            if (!Active) return;              // nothing to undo
+            if (!Active) return;   // nothing to undo
             group = go.AddComponent<CanvasGroup>();
         }
-        float alpha = Active ? 0f : 1f;
-        if (Mathf.Approximately(group.alpha, alpha)) return;
-        group.alpha = alpha;
+        group.alpha = Active ? 0f : 1f;
         group.blocksRaycasts = !Active;
-        if (Active) FlagHoldersHidden++;
     }
 
-    /// <summary>The rule changed (host toggled it, or a lobby was entered): re-apply to every scoreboard entry that already exists.</summary>
-    private static void RefreshAll()
+    /// <summary>The rule or the mod switch changed: re-apply to every scoreboard entry that exists.</summary>
+    internal static void RefreshAll()
     {
         try
         {
             _summaryType ??= GameTypes.Find("PlayerSummary");
             if (_summaryType == null) return;
-            var all = Resources.FindObjectsOfTypeAll(Il2CppType.From(_summaryType));
-            if (all == null) return;
-            for (int i = 0; i < all.Length; i++)
-                Apply(Reflect.Wrap(_summaryType, Mem.PtrOf(all[i])));
+            foreach (var o in Resources.FindObjectsOfTypeAll(Il2CppType.From(_summaryType)))
+                Apply(Reflect.Wrap(_summaryType, Mem.PtrOf(o)));
         }
-        catch (Exception e) { ModPlugin.L.LogWarning("[anonymous] refresh failed: " + e.GetType().Name + ": " + e.Message); }
+        catch (Exception e) { Plugin.L.LogWarning("anonymous attacks: refresh failed: " + e.Message); }
     }
 }
