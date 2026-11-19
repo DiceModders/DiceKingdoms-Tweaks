@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>DiceModders.Tweaks</AssemblyName>
     <RootNamespace>DiceModders.Tweaks</RootNamespace>
     <Description>Interface and lobby tweaks for Dice Kingdoms: anonymous attacks, chat and event history, next-host chooser, chat and event log options.</Description>
@@ -34,6 +35,10 @@
     <EnableSourceLink>false</EnableSourceLink>
     <EmbedUntrackedSources>false</EmbedUntrackedSources>
   </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="texts.json" LogicalName="texts.json" />
+  </ItemGroup>
 
 </Project>
 

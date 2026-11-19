@@ -81,7 +81,7 @@ internal static class History
             if (it.Kind == HistoryKind.Event && chat) sb.Append("<color=#c9a66b>*</color> ");
             sb.Append(it.Text).Append('\n');
         }
-        return sb.Length == 0 ? "(nothing yet)" : sb.ToString();
+        return sb.Length == 0 ? Tx.T("history.empty") : sb.ToString();
     }
 
     private static readonly Regex Tags = new("<[^>]+>", RegexOptions.Compiled);

@@ -9,20 +9,20 @@ internal static class GameSettings
 {
     internal static void Install(UiScope ui)
     {
-        ui?.Native.Settings.AddBlock(new SettingsBlockSpec
+        Tx.Block(ui, () => new SettingsBlockSpec
         {
             Id = Plugin.Guid + ".settings",
             Page = SettingsPage.Game,
-            Title = "Interface tweaks",
+            Title = Tx.T("settings.title"),
             Order = 10,
             Build = block =>
             {
-                Slider(block, "Chat lines on screen", Options.ChatLines, 20);
-                Slider(block, "Chat message seconds", Options.ChatSeconds, 120);
-                Slider(block, "Event lines on screen", Options.EventLines, 20);
-                Slider(block, "Event seconds", Options.EventSeconds, 120);
-                block.AddInfo("0 keeps the game's own value.");
-                block.AddButton("History", "Open", HistoryWindow.Toggle);
+                Slider(block, Tx.T("settings.chatLines"), Options.ChatLines, 20);
+                Slider(block, Tx.T("settings.chatSeconds"), Options.ChatSeconds, 120);
+                Slider(block, Tx.T("settings.eventLines"), Options.EventLines, 20);
+                Slider(block, Tx.T("settings.eventSeconds"), Options.EventSeconds, 120);
+                block.AddInfo(Tx.T("settings.zeroKeeps"));
+                block.AddButton(Tx.T("history.title"), Tx.T("common.open"), HistoryWindow.Toggle);
             },
         });
     }

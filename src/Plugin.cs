@@ -14,6 +14,7 @@ using Ui = DiceModders.UiKit.UiKit;
 ///  * History: every chat message and event of the match in one window (top bar button).
 ///  * Next host: the host chooses who takes over when he leaves (top bar button, host only).
 ///  * Chat and event log: how many lines they show and for how long (Settings > Game > Interface tweaks).
+///  * Build keys: pickaxe tool (Q) and burning your building under the mouse (X), as hotkeys.
 /// Everything reacts to the game's own events; nothing runs every frame.
 /// </summary>
 [BepInPlugin(Guid, Name, Version)]
@@ -32,6 +33,7 @@ public sealed class Plugin : BasePlugin
 
     public override void Load()
     {
+        Tx.Load();                                   // texts.json in the game's language (ModCore)
         L = Log;
         Options.Bind(Config);
 
@@ -40,6 +42,7 @@ public sealed class Plugin : BasePlugin
         AnonymousColours.Install(patcher);
         ChatLog.Install(patcher);
         NextHost.Install(patcher);
+        BuildHotkeys.Install(Config, patcher);
         patcher.Summary();
 
         var ui = Ui.CreateScope(Guid);

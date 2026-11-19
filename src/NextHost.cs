@@ -47,7 +47,8 @@ internal static class NextHost
     internal static void InstallButton(UiScope ui)
     {
         _ui = ui;
-        _ui?.WhenReady(s => { _button = s.Native.TopBar.AddIconButton("host", "Choose the next host", Toggle, 21); RefreshButton(); });
+        _ui?.WhenReady(s => { _button = s.Native.TopBar.AddIconButton("host", Tx.T("nexthost.tooltip"), Toggle, 21); RefreshButton(); });
+        DiceModders.ModCore.ModCore.Texts.LanguageChanged += () => _button?.SetTooltip(Tx.T("nexthost.tooltip"));   // the tooltip in the new language
     }
 
     internal static void RefreshButton() => _button?.SetVisible(Plugin.On && Core.Lobby.InLobby && Core.Lobby.IsHost);
@@ -66,8 +67,8 @@ internal static class NextHost
     private static void Choose(ulong steamId)
     {
         Chosen = steamId;
-        if (steamId == 0) { Status("Automatic: the game decides."); return; }
-        Status(Enforce() ? "Done. If you leave now, this player becomes the host." : "Saved; applied as soon as the lobby allows it.");
+        if (steamId == 0) { Status(Tx.T("nexthost.auto")); return; }
+        Status(Enforce() ? Tx.T("nexthost.done") : Tx.T("nexthost.saved"));
     }
 
     /// <summary>Moves the chosen player to the front of the candidate list. True when the list is (now) in the wanted order.</summary>
@@ -80,7 +81,7 @@ internal static class NextHost
             if (_listKey == null) return false;
             var lines = new List<string>((lobby.GetData(_listKey) ?? "").Split('\n'));
             int at = lines.FindIndex(l => IdOf(l) == Chosen);
-            if (at < 0) { Chosen = 0; Status("That player left - back to automatic."); return false; }
+            if (at < 0) { Chosen = 0; Status(Tx.T("nexthost.left")); return false; }
             if (at == 0) return true;
             var line = lines[at];
             lines.RemoveAt(at);
@@ -117,11 +118,11 @@ internal static class NextHost
         if (_window != null) { _window.Close(); return; }
         _window = _ui?.Custom.Window(w =>
         {
-            w.Title("Next host").Size(420f, 260f).Center().Draggable().Closable();
+            w.Title(Tx.T("nexthost.title")).Size(420f, 260f).Center().Draggable().Closable();
             w.OnClose(() => { _window = null; _dropdown = null; _status = null; });
-            w.Body.Paragraph("Choose who becomes the host when you leave. The game picks the first connected player of its host list; this puts your choice at the top.");
-            _dropdown = w.Body.Dropdown(new[] { "Automatic (the game decides)" }, 0, i => Choose(i <= 0 || i > Candidates.Count ? 0 : Candidates[i - 1].SteamId));
-            _status = w.Body.Paragraph(Chosen == 0 ? "Automatic: the game decides." : "A next host is set.");
+            w.Body.Paragraph(Tx.T("nexthost.help"));
+            _dropdown = w.Body.Dropdown(new[] { Tx.T("nexthost.automatic") }, 0, i => Choose(i <= 0 || i > Candidates.Count ? 0 : Candidates[i - 1].SteamId));
+            _status = w.Body.Paragraph(Chosen == 0 ? Tx.T("nexthost.auto") : Tx.T("nexthost.set"));
         });
         FillCandidates();
     }
@@ -130,7 +131,7 @@ internal static class NextHost
     {
         Candidates.Clear();
         Candidates.AddRange(Core.Lobby.Members.Where(m => !m.IsLocal));
-        _dropdown?.Options(new[] { "Automatic (the game decides)" }.Concat(Candidates.Select(m => m.Name)));
+        _dropdown?.Options(new[] { Tx.T("nexthost.automatic") }.Concat(Candidates.Select(m => m.Name)));
         int i = Candidates.FindIndex(m => m.SteamId == Chosen);
         _dropdown?.Set(i < 0 ? 0 : i + 1);
     }

@@ -21,7 +21,8 @@ internal static class HistoryWindow
     internal static void Install(UiScope ui)
     {
         _ui = ui;
-        _ui?.WhenReady(s => _button = s.Native.TopBar.AddIconButton("research", "Chat and event history", Toggle, 20));
+        _ui?.WhenReady(s => _button = s.Native.TopBar.AddIconButton("research", Tx.T("history.tooltip"), Toggle, 20));
+        DiceModders.ModCore.ModCore.Texts.LanguageChanged += () => _button?.SetTooltip(Tx.T("history.tooltip"));   // the tooltip in the new language
         History.Changed += Redraw;
     }
 
@@ -32,14 +33,14 @@ internal static class HistoryWindow
         if (_window != null) { _window.Close(); return; }
         _window = _ui?.Custom.Window(w =>
         {
-            w.Title("History").Size(560f, 480f).Position(40f, 40f).Draggable().Closable().Fullscreenable().FullscreenButton();
+            w.Title(Tx.T("history.title")).Size(560f, 480f).Position(40f, 40f).Draggable().Closable().Fullscreenable().FullscreenButton();
             w.OnClose(() => { _window = null; _text = _status = null; _scroll = null; });
             w.Body.Row(row =>
             {
-                _all = row.Button("All", () => Filter(true, true))?.FillWidth() as UiButton;
-                _chat = row.Button("Chat", () => Filter(true, false))?.FillWidth() as UiButton;
-                _events = row.Button("Events", () => Filter(false, true))?.FillWidth() as UiButton;
-                row.Button("Save", Save)?.FillWidth();
+                _all = row.Button(Tx.T("history.all"), () => Filter(true, true))?.FillWidth() as UiButton;
+                _chat = row.Button(Tx.T("history.chat"), () => Filter(true, false))?.FillWidth() as UiButton;
+                _events = row.Button(Tx.T("history.events"), () => Filter(false, true))?.FillWidth() as UiButton;
+                row.Button(Tx.T("history.save"), Save)?.FillWidth();
             })?.Height(36f);
             _scroll = w.Body.Scroll(s => _text = s.Paragraph(""))?.FillWidth().FillHeight() as UiScroll;
             _status = w.Body.Text("");
@@ -58,13 +59,13 @@ internal static class HistoryWindow
     {
         if (_window == null || _text == null) return;
         _text.Value = History.Render(_showChat, _showEvents, MaxLines);
-        if (_status != null) _status.Value = $"{History.Count} lines kept this match (showing the newest {MaxLines}).";
+        if (_status != null) _status.Value = Tx.T("history.status", History.Count, MaxLines);
         _scroll?.ToBottom();
     }
 
     private static void Save()
     {
-        try { var path = History.Save(); if (_status != null) _status.Value = "Saved: " + path; }
-        catch (Exception e) { if (_status != null) _status.Value = "Could not save: " + e.Message; }
+        try { var path = History.Save(); if (_status != null) _status.Value = Tx.T("history.saved", path); }
+        catch (Exception e) { if (_status != null) _status.Value = Tx.T("history.failed", e.Message); }
     }
 }
