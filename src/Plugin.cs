@@ -25,7 +25,7 @@ public sealed class Plugin : BasePlugin
 {
     public const string Guid = "org.dicemodders.dicekingdoms.tweaks";
     public const string Name = "DiceKingdoms Tweaks";
-    public const string Version = "4.0.0";
+    public const string Version = "1.0.0";
 
     internal static ManualLogSource L;
     /// <summary>The mod's own switch ([General] Enabled); while off the game behaves as without the mod.</summary>
